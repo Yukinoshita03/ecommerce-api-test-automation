@@ -1,14 +1,8 @@
 import pytest
 
-from common.sendrequest import send_request
 
-
-BASE_URL = "http://localhost:8000"
-PRODUCTS_URL = f"{BASE_URL}/products"
-
-
-def test_product_list():
-    response = send_request("GET", PRODUCTS_URL)
+def test_product_list(api_client):
+    response = api_client.request("GET", "/products")
 
     assert response.status_code == 200, "商品列表请求失败"
 
@@ -23,8 +17,8 @@ def test_product_list():
         assert "stock" in product, f"商品缺少 stock 字段：{product}"
 
 
-def test_product_detail():
-    response = send_request("GET", f"{PRODUCTS_URL}/1")
+def test_product_detail(api_client):
+    response = api_client.request("GET", "/products/1")
 
     assert response.status_code == 200, "商品详情请求失败"
 
@@ -39,8 +33,8 @@ def test_product_detail():
     assert product["name"].strip(), "商品名称为空"
 
 
-def test_product_not_found():
-    response = send_request("GET", f"{PRODUCTS_URL}/999999")
+def test_product_not_found(api_client):
+    response = api_client.request("GET", "/products/999999")
 
     assert response.status_code == 404, "不存在的商品应返回 404"
     assert response.json() == {
@@ -51,8 +45,8 @@ def test_product_not_found():
     }, "商品不存在时的错误响应不符合预期"
 
 
-def test_product_post_missing_fields():
-    response = send_request("POST", PRODUCTS_URL, json={})
+def test_product_post_missing_fields(api_client):
+    response = api_client.request("POST", "/products", json={})
 
     assert response.status_code == 422, "缺少必填字段时应返回 422"
 
@@ -79,8 +73,8 @@ def test_product_post_missing_fields():
     ],
     ids=["price_must_be_positive", "stock_must_be_non_negative"],
 )
-def test_product_post_invalid_values(payload, expected_field):
-    response = send_request("POST", PRODUCTS_URL, json=payload)
+def test_product_post_invalid_values(api_client, payload, expected_field):
+    response = api_client.request("POST", "/products", json=payload)
 
     assert response.status_code == 422, "非法商品字段应返回 422"
 
