@@ -1,4 +1,7 @@
 import pytest
+from pathlib import Path
+
+from common.read_yaml import load_yaml
 
 
 def test_product_list(api_client):
@@ -65,13 +68,17 @@ def test_product_post_missing_fields(api_client):
     )
 
 
+invalid_cases = load_yaml(
+    Path(__file__).parent / "data" / "product_invalid_cases.yaml"
+)
+
 @pytest.mark.parametrize(
     "payload, expected_field",
     [
-        ({"name": "dingge", "stock": 1, "price": 0}, "price"),
-        ({"name": "dingge", "stock": -1, "price": 10}, "stock"),
+        (case["payload"], case["expected_field"])
+        for case in invalid_cases
     ],
-    ids=["price_must_be_positive", "stock_must_be_non_negative"],
+    ids=[case["case"] for case in invalid_cases],
 )
 def test_product_post_invalid_values(api_client, payload, expected_field):
     response = api_client.request("POST", "/products", json=payload)
