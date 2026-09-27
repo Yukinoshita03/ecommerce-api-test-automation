@@ -1,7 +1,9 @@
-import pytest
 from pathlib import Path
+from uuid import uuid4
 
-from common.read_yaml import load_yaml
+import pytest
+
+from common.read_yaml import load_yaml_cases
 
 
 @pytest.mark.smoke
@@ -68,7 +70,7 @@ def test_product_post_missing_fields(api_client):
         "错误详情没有指出所有缺失的必填字段"
     )
 
-invalid_cases = load_yaml(
+invalid_cases = load_yaml_cases(
     Path(__file__).parent / "data" / "product_invalid_cases.yaml"
 )
 
@@ -102,12 +104,13 @@ def test_product_post_invalid_values(api_client, payload, expected_field):
 )
 @pytest.mark.stateful
 def test_product_post_success(api_client, payload):
-    response = api_client.request("POST", "/products", json=payload)
+    unique_payload = {**payload, "name": f"{payload['name']}_{uuid4().hex}"}
+    response = api_client.request("POST", "/products", json=unique_payload)
 
     assert response.status_code == 201
     body = response.json()
 
     assert isinstance(body, dict)
-    for field, expected_value in payload.items():
+    for field, expected_value in unique_payload.items():
         assert field in body
         assert body[field] == expected_value

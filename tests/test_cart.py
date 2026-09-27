@@ -1,16 +1,24 @@
+from uuid import uuid4
+
 import pytest
 
 
 @pytest.mark.stateful
 def test_cart_add_list_and_remove(authenticated_client):
-    products_response = authenticated_client.request("GET", "/products")
-    assert products_response.status_code == 200, "查询商品列表失败"
-
-    products = products_response.json()
-    product = next((item for item in products if item["stock"] >= 2), None)
-    assert product is not None, "没有库存至少为 2 的商品可用于购物车测试"
-
-    product_id = product["id"]
+    product_response = authenticated_client.request(
+        "POST",
+        "/products",
+        json={
+            "name": f"cart_test_{uuid4().hex}",
+            "description": "独立的购物车测试商品",
+            "price": 10.0,
+            "stock": 2,
+        },
+    )
+    assert product_response.status_code == 201, (
+        f"创建购物车测试商品失败：{product_response.text}"
+    )
+    product_id = product_response.json()["id"]
     try:
         add_response = authenticated_client.request(
             "POST", "/cart", json={"product_id": product_id, "quantity": 2}
@@ -36,5 +44,5 @@ def test_cart_add_list_and_remove(authenticated_client):
             "删除后购物车中仍存在该商品"
         )
     finally:
-        # 每个测试使用独立账号；断言失败时也清空这个账号的购物车。
+        # 只清理本次测试账号的购物车；新建商品没有删除接口。
         authenticated_client.request("DELETE", "/cart")

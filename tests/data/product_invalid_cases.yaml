@@ -4,6 +4,12 @@
     price: 0
     stock: 10
   expected_field: price
+- case: price_negative
+  payload:
+    name: dingge
+    price: -0.01
+    stock: 10
+  expected_field: price
 - case: stock_must_be_non_negative
   payload:
     name: dingge

@@ -6,6 +6,16 @@ import pytest
 import requests
 
 from common.api_client import ApiClient
+from common.config import resolve_base_url
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--base-url",
+        action="store",
+        default=None,
+        help="被测服务地址；优先于 TEST_BASE_URL 环境变量",
+    )
 
 
 def _register_test_user(client):
@@ -33,8 +43,11 @@ def _login_test_user(client, user_data):
 
 
 @pytest.fixture
-def base_url():
-    return os.getenv("TEST_BASE_URL", "http://localhost:8000")
+def base_url(request):
+    return resolve_base_url(
+        cli_value=request.config.getoption("--base-url"),
+        env_value=os.getenv("TEST_BASE_URL"),
+    )
 
 
 @pytest.fixture(scope="function")
