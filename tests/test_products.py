@@ -4,6 +4,7 @@ from pathlib import Path
 from common.read_yaml import load_yaml
 
 
+@pytest.mark.smoke
 def test_product_list(api_client):
     response = api_client.request("GET", "/products")
 
@@ -67,7 +68,6 @@ def test_product_post_missing_fields(api_client):
         "错误详情没有指出所有缺失的必填字段"
     )
 
-
 invalid_cases = load_yaml(
     Path(__file__).parent / "data" / "product_invalid_cases.yaml"
 )
@@ -91,3 +91,23 @@ def test_product_post_invalid_values(api_client, payload, expected_field):
         for item in body["error"]["details"]
     ]
     assert expected_field in error_fields, f"错误详情未指出字段 {expected_field}"
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"name": "dingge", "description": "123", "price": 100, "stock": 100},
+        {"name": "123", "description": "1234", "price": 100, "stock": 200},
+    ],
+)
+@pytest.mark.stateful
+def test_product_post_success(api_client, payload):
+    response = api_client.request("POST", "/products", json=payload)
+
+    assert response.status_code == 201
+    body = response.json()
+
+    assert isinstance(body, dict)
+    for field, expected_value in payload.items():
+        assert field in body
+        assert body[field] == expected_value
