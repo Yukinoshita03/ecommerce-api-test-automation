@@ -7,6 +7,7 @@ import requests
 
 from common.api_client import ApiClient
 from common.config import resolve_base_url
+from common.log_config import setup_logging
 
 
 def pytest_addoption(parser):
@@ -92,3 +93,8 @@ def second_authenticated_client(base_url):
                 client.request("DELETE", "/cart")
         client.session.headers.pop("Authorization", None)
         client.close()
+
+
+
+def pytest_configure(config):
+    setup_logging()
