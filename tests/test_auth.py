@@ -1,3 +1,4 @@
+from common.jsonpath_utils import extract_one
 import json
 
 import allure
@@ -42,7 +43,7 @@ def test_login_token_authenticates_registered_user(api_client, registered_user):
         assert login_response.status_code == 200, "登录失败"
         login_body = login_response.json()
         assert login_body["token_type"].lower() == "bearer"
-        access_token = login_body["access_token"]
+        access_token = extract_one(login_body, "$.access_token")
         assert access_token, "登录响应中的 access_token 为空"
 
     with allure.step("设置 Authorization 请求头，携带 token 发送 GET /auth/me"):

@@ -1,3 +1,4 @@
+from common.jsonpath_utils import extract_one
 import allure
 from uuid import uuid4
 
@@ -22,14 +23,14 @@ def test_cart_add_list_and_remove(authenticated_client):
         assert product_response.status_code == 201, (
             f"创建购物车测试商品失败：{product_response.text}"
         )
-        product_id = product_response.json()["id"]
+        product_id = extract_one(product_response.json(), "$.id")
         try:
             add_response = authenticated_client.request(
                 "POST", "/cart", json={"product_id": product_id, "quantity": 2}
             )
             assert add_response.status_code == 201, "加入购物车失败"
             cart_item = add_response.json()
-            cart_id = cart_item["id"]
+            cart_id = extract_one(cart_item, "$.id")
 
             list_response = authenticated_client.request("GET", "/cart")
             assert list_response.status_code == 200, "查询购物车失败"

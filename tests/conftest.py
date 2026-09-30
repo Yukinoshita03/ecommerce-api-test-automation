@@ -1,3 +1,4 @@
+from common.jsonpath_utils import extract_one
 import os
 from contextlib import suppress
 from uuid import uuid4
@@ -38,7 +39,7 @@ def _login_test_user(client, user_data):
         data={"username": user_data["username"], "password": user_data["password"]},
     )
     assert response.status_code == 200, f"测试用户登录失败：{response.text}"
-    token = response.json().get("access_token")
+    token = extract_one(response.json(), "$.access_token")
     assert isinstance(token, str) and token, "登录响应缺少 access_token"
     client.session.headers["Authorization"] = f"Bearer {token}"
 

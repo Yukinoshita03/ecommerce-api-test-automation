@@ -1,3 +1,4 @@
+from common.jsonpath_utils import extract_one
 import allure
 from uuid import uuid4
 
@@ -24,7 +25,7 @@ def _create_test_product(client, stock):
 @allure.title('购物车下单并核对金额、库存')
 def test_create_order_from_cart(authenticated_client):
     with allure.step("执行场景并检查预期结果"):
-        product_id = _create_test_product(authenticated_client, stock=2)["id"]
+        product_id = extract_one(_create_test_product(authenticated_client, stock=2), "$.id")
 
         try:
             cart_response = authenticated_client.request(
@@ -39,7 +40,7 @@ def test_create_order_from_cart(authenticated_client):
                 f"创建订单失败：{order_response.text}"
             )
             created_order = order_response.json()
-            order_id = created_order["id"]
+            order_id = extract_one(created_order, "$.id")
 
             detail_response = authenticated_client.request("GET", f"/orders/{order_id}")
             assert detail_response.status_code == 200, "按 ID 查询订单失败"
@@ -108,7 +109,7 @@ def test_order_rejects_stale_cart_stock(
         assert owner_me.json()["id"] != other_me.json()["id"], "两个用户必须相互独立"
 
         product = _create_test_product(owner, stock=1)
-        product_id = product["id"]
+        product_id = extract_one(product, "$.id")
         try:
             for client in (owner, other):
                 add_response = client.request(
@@ -159,7 +160,7 @@ def test_order_detail_is_hidden_from_other_user(
     with allure.step("执行场景并检查预期结果"):
         owner = authenticated_client
         other = second_authenticated_client
-        product_id = _create_test_product(owner, stock=1)["id"]
+        product_id = extract_one(_create_test_product(owner, stock=1), "$.id")
         try:
             add_response = owner.request(
                 "POST", "/cart", json={"product_id": product_id, "quantity": 1}
@@ -168,7 +169,7 @@ def test_order_detail_is_hidden_from_other_user(
 
             created = owner.request("POST", "/orders")
             assert created.status_code == 201, f"用户 A 创建订单失败：{created.text}"
-            order_id = created.json()["id"]
+            order_id = extract_one(created.json(), "$.id")
 
             owner_detail = owner.request("GET", f"/orders/{order_id}")
             assert owner_detail.status_code == 200, "订单所有者应能查询订单"

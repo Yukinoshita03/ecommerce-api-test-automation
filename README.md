@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-主回归测试位于 `tests/`，目前可收集 35 个执行用例：17 个接口用例覆盖商品、HTTP 错误、认证、购物车及订单；18 个本地用例检查地址配置、YAML 数据格式、请求超时及报告脱敏。商品非法值用例先校验 YAML 结构，再生成参数化测试；新增同类输入只需向 YAML 添加数据行。各订单场景的前置数据与预期见 [订单用例设计](docs/order-test-cases.md)。库存场景按顺序执行，不是并发压力测试。
+主回归测试位于 `tests/`，目前可收集 40 个执行用例：17 个接口用例覆盖商品、HTTP 错误、认证、购物车及订单；23 个本地用例检查地址配置、YAML 数据格式、请求超时、报告脱敏及 JSONPath 提取。商品非法值用例先校验 YAML 结构，再生成参数化测试；新增同类输入只需向 YAML 添加数据行。各订单场景的前置数据与预期见 [订单用例设计](docs/order-test-cases.md)。库存场景按顺序执行，不是并发压力测试。
 
 `practice/` 保存 pytest 异常处理、环境变量和跳过标记练习，不混入默认 API 回归集。练习可单独运行：
 
@@ -76,3 +76,12 @@ allure open /tmp/ecommerce-report-run1
 Python 插件随 requirements.txt 安装；生成网页还需要单独安装 Allure CLI。若终端找不到 `allure`，本机可使用 `/Users/tankaiwen/.npm-global/bin/allure`。`/tmp` 目录是临时存储，需长期留存时选择自己可写的目录。
 
 报告中 feature 对应用例分组，title 对应中文名称，step 展示执行过程。ApiClient 为每次请求自动记录步骤、结构化输入、响应状态码与 JSON 正文；异常记录类型并继续向外抛出。密码、token 等凭据字段递归脱敏，不记录原始请求头、非结构化请求正文及非 JSON 响应正文。附件在成功和失败时都会记录；pytest 的失败断言由插件自动收集。练习目录也添加了 Allure 展示，可用同样参数单独运行。
+
+## JSONPath 接口关联
+
+`common/jsonpath_utils.py` 的 `extract_one(body, expression)` 要求路径恰好匹配一个值；字段缺失或匹配多个值时给出明确的断言信息。认证、购物车和订单测试使用它提取本次响应的 token、商品 ID、购物车条目 ID 和订单 ID，再传给后续请求。原有状态码及业务断言保持不变。Allure 只记录提取表达式，不附加提取值，避免将 token 写入步骤附件。
+
+```python
+order_id = extract_one(created_order, "$.id")
+response = client.request("GET", f"/orders/{order_id}")
+```
