@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-主回归测试位于 `tests/`，目前可收集 32 个执行用例：17 个接口用例覆盖商品、HTTP 错误、认证、购物车及订单；15 个本地用例检查地址配置和 YAML 数据格式。商品非法值用例先校验 YAML 结构，再生成参数化测试；新增同类输入只需向 YAML 添加数据行。各订单场景的前置数据与预期见 [订单用例设计](docs/order-test-cases.md)。库存场景按顺序执行，不是并发压力测试。
+主回归测试位于 `tests/`，目前可收集 34 个执行用例：17 个接口用例覆盖商品、HTTP 错误、认证、购物车及订单；17 个本地用例检查地址配置、YAML 数据格式及报告脱敏。商品非法值用例先校验 YAML 结构，再生成参数化测试；新增同类输入只需向 YAML 添加数据行。各订单场景的前置数据与预期见 [订单用例设计](docs/order-test-cases.md)。库存场景按顺序执行，不是并发压力测试。
 
 `practice/` 保存 pytest 异常处理、环境变量和跳过标记练习，不混入默认 API 回归集。练习可单独运行：
 
@@ -19,7 +19,8 @@
 - Python、pytest、requests：发送 HTTP 请求并编写断言。
 - pytest fixture、参数化：管理测试数据和复用准备步骤。
 - YAML：已用于商品非法值参数化，并在加载时校验用例结构。
-- logging、Allure：后续用于记录排查信息和生成报告。
+- Allure：已添加用例分组、中文标题、场景步骤和接口请求/响应附件。
+- logging：后续用于记录排查信息。
 - CI：自动运行回归测试。
 
 这些是学习目标，不代表已经实现。
@@ -61,3 +62,17 @@ TEST_BASE_URL=http://localhost:8000 .venv/bin/python -m pytest tests/test_produc
 需要验证优先级时，可把环境变量设为无效端口，同时用 `--base-url` 指向本地测试服务。账号、商品和订单 ID 在运行时生成或从本次响应获取，不保存在 YAML 中。
 
 当前测试代码由我逐步手写，覆盖范围会随着学习进度继续扩展。
+
+## Allure 报告
+
+在仓库根目录执行（每次运行使用新的结果目录，避免混入旧结果）：
+
+```bash
+.venv/bin/python -m pytest tests --alluredir=/tmp/ecommerce-allure-run1
+allure generate /tmp/ecommerce-allure-run1 -o /tmp/ecommerce-report-run1
+allure open /tmp/ecommerce-report-run1
+```
+
+Python 插件随 requirements.txt 安装；生成网页还需要单独安装 Allure CLI。若终端找不到 `allure`，本机可使用 `/Users/tankaiwen/.npm-global/bin/allure`。`/tmp` 目录是临时存储，需长期留存时选择自己可写的目录。
+
+报告中 feature 对应用例分组，title 对应中文名称，step 展示执行过程。ApiClient 为每次请求自动记录步骤、结构化输入、响应状态码与 JSON 正文；异常记录类型并继续向外抛出。密码、token 等凭据字段递归脱敏，不记录原始请求头、非结构化请求正文及非 JSON 响应正文。附件在成功和失败时都会记录；pytest 的失败断言由插件自动收集。练习目录也添加了 Allure 展示，可用同样参数单独运行。

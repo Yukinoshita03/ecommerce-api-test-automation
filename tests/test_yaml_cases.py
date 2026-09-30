@@ -1,20 +1,24 @@
+import allure
 import pytest
 
 from common.read_yaml import load_yaml_cases
 
 
+@allure.feature('YAML 数据校验')
+@allure.title('读取合法 YAML 用例')
 def test_load_yaml_cases_accepts_valid_cases(tmp_path):
-    path = tmp_path / "cases.yaml"
-    path.write_text(
-        "- case: missing_price\n"
-        "  payload: {}\n"
-        "  expected_field: price\n",
-        encoding="utf-8",
-    )
+    with allure.step("执行场景并检查预期结果"):
+        path = tmp_path / "cases.yaml"
+        path.write_text(
+            "- case: missing_price\n"
+            "  payload: {}\n"
+            "  expected_field: price\n",
+            encoding="utf-8",
+        )
 
-    assert load_yaml_cases(path) == [
-        {"case": "missing_price", "payload": {}, "expected_field": "price"}
-    ]
+        assert load_yaml_cases(path) == [
+            {"case": "missing_price", "payload": {}, "expected_field": "price"}
+        ]
 
 
 @pytest.mark.parametrize(
@@ -66,14 +70,17 @@ def test_load_yaml_cases_accepts_valid_cases(tmp_path):
         ),
     ],
 )
+@allure.feature('YAML 数据校验')
+@allure.title('YAML 错误包含位置及原因：{problem}')
 def test_load_yaml_cases_reports_location(tmp_path, contents, location, problem):
-    path = tmp_path / "cases.yaml"
-    path.write_text(contents, encoding="utf-8")
+    with allure.step("执行场景并检查预期结果"):
+        path = tmp_path / "cases.yaml"
+        path.write_text(contents, encoding="utf-8")
 
-    with pytest.raises(ValueError) as error:
-        load_yaml_cases(path)
+        with pytest.raises(ValueError) as error:
+            load_yaml_cases(path)
 
-    message = str(error.value)
-    assert str(path) in message
-    assert location in message
-    assert problem in message
+        message = str(error.value)
+        assert str(path) in message
+        assert location in message
+        assert problem in message
