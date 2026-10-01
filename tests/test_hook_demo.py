@@ -15,6 +15,7 @@ import pytest
     os.getenv("RUN_HOOK_DEMO") != "1",
     reason="故意失败的 Hook 演示，设置 RUN_HOOK_DEMO=1 才执行",
 )
+@pytest.mark.analysis_context(request_execution="mocked", purpose='验证业务断言失败的分析链路', expected_behavior='商品名称应为 Keyboard')
 @allure.feature("pytest Hook 演示")
 @allure.title("模拟业务断言失败，观察 call 阶段报告")
 def test_hook_reports_assertion_failure(monkeypatch, caplog):

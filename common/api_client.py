@@ -24,21 +24,19 @@ class ApiClient:
         logger.info("发送请求：method=%s path=%s", method, report_path)
 
         with allure.step(f"发送 {method} {report_path}"):
-            attach_json(
-                "接口请求",
-                {
-                    "method": method,
-                    "path": report_path,
-                    "params": kwargs.get("params"),
-                    "json": kwargs.get("json"),
-                    "data": (
-                        kwargs.get("data")
-                        if isinstance(kwargs.get("data"), dict)
-                        else None
-                    ),
-                    "timeout": kwargs.get("timeout", 5),
-                },
-            )
+            request_info = {
+                "method": method,
+                "path": report_path,
+                "params": kwargs.get("params"),
+                "json": kwargs.get("json"),
+                "data": (
+                    kwargs.get("data")
+                    if isinstance(kwargs.get("data"), dict)
+                    else None
+                ),
+                "timeout": kwargs.get("timeout", 5),
+            }
+            attach_json("接口请求", request_info)
 
             # 只测量实际请求调用的耗时，不包含报告附件写入时间。
             started_at = perf_counter()

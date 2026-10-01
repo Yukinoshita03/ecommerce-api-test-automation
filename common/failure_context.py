@@ -60,10 +60,10 @@ def sanitize_context(value):
     return _sanitize_values(redact(value))
 
 
-def build_failure_context(report, call):
+def build_failure_context(report, call, item=None):
     state = _current.get()
     error = call.excinfo
-    return {
+    context = {
         "test_name": sanitize_text(report.nodeid),
         "phase": report.when,
         "outcome": report.outcome,
@@ -74,3 +74,9 @@ def build_failure_context(report, call):
         "evidence": _sanitize_values(state["events"]) if state else [],
         "logs": sanitize_text(report.caplog),
     }
+
+    if item is not None:
+        marker = item.get_closest_marker("analysis_context")
+        if marker is not None:
+            context["test_metadata"] = sanitize_context(dict(marker.kwargs))
+    return context

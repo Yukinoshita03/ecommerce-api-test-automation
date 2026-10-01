@@ -1,20 +1,20 @@
 import json
+import os
+import warnings
+from contextlib import suppress
 from datetime import datetime, timezone
 from pathlib import Path
-import warnings
-
-import allure
-from common.failure_context import start_context, finish_context, build_failure_context
-from common.jsonpath_utils import extract_one
-import os
-from contextlib import suppress
 from uuid import uuid4
 
+import allure
 import pytest
 import requests
 
+from common.ai.reporting import analyze_failed_test
 from common.api_client import ApiClient
 from common.config import resolve_base_url
+from common.failure_context import build_failure_context, finish_context, start_context
+from common.jsonpath_utils import extract_one
 from common.log_config import setup_logging
 
 
@@ -104,9 +104,12 @@ def second_authenticated_client(base_url):
         client.close()
 
 
-
 def pytest_configure(config):
     setup_logging()
+    config.addinivalue_line(
+        "markers",
+        "analysis_context(**metadata): 显式说明 mock、测试目的和预期行为",
+    )
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid4().hex[:8]
     config._failure_output_dir = Path(config.getoption("--failure-dir")) / run_id
 
@@ -135,14 +138,24 @@ def pytest_runtest_makereport(item, call):
             f"\n失败阶段：{report.when}"
         )
 
-        context = build_failure_context(report, call)
+        context = build_failure_context(report, call, item)
+        output_dir = item.config._failure_output_dir
+        output_file = output_dir / f"{uuid4().hex}-{report.when}.json"
         try:
-            output_dir = item.config._failure_output_dir
             output_dir.mkdir(parents=True, exist_ok=True)
-            output_file = output_dir / f"{uuid4().hex}-{report.when}.json"
             content = json.dumps(context, ensure_ascii=False, indent=2, default=str)
             output_file.write_text(content, encoding="utf-8")
             allure.attach(content, name=f"失败上下文 ({report.when})", attachment_type=allure.attachment_type.JSON)
             print(f"失败上下文：{output_file.resolve()}")
         except OSError as error:
             warnings.warn(f"失败上下文写入失败：{type(error).__name__}", RuntimeWarning)
+
+        # 模型调用放在原始失败报告生成之后，不修改 report 的结果。
+        analysis = analyze_failed_test(context)
+        if analysis is not None:
+            try:
+                output_dir.mkdir(parents=True, exist_ok=True)
+                analysis_file = output_dir / f"{output_file.stem}-ai.json"
+                analysis_file.write_text(json.dumps(analysis, ensure_ascii=False, indent=2), encoding="utf-8")
+            except OSError as error:
+                warnings.warn(f"AI 分析写入失败：{type(error).__name__}", RuntimeWarning)

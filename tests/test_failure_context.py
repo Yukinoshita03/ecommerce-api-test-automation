@@ -44,7 +44,7 @@ def test_teardown(bad_teardown):
 def test_clean():
     assert False, "independent failure"
 ''', encoding="utf-8")
-    environment = {**os.environ, "PYTHONPATH": str(root)}
+    environment = {**os.environ, "PYTHONPATH": str(root), "AI_ANALYSIS_MODE": "off"}
     result = subprocess.run(
         [sys.executable, "-m", "pytest", str(tmp_path / "test_demo.py"),
          "--failure-dir", str(tmp_path / "failures"),

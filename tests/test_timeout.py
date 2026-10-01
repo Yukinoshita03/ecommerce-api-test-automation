@@ -7,6 +7,7 @@ import requests
 from common.api_client import ApiClient
 
 
+@pytest.mark.analysis_context(request_execution="mocked", purpose='验证默认 timeout 参数及异常传播', expected_behavior='请求抛出 Timeout，pytest.raises 应通过')
 @allure.feature('请求超时')
 @allure.title('默认超时配置与 Timeout 传播')
 def test_api_client_timeout(monkeypatch, caplog):
