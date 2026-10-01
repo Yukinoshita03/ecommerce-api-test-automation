@@ -12,6 +12,8 @@ def redact(value):
     return value
 
 def attach_json(name, value):
+    from common.failure_context import record_evidence
+    record_evidence(name, value)
     allure.attach(json.dumps(redact(value), ensure_ascii=False, indent=2, default=str), name=name, attachment_type=allure.attachment_type.JSON)
 
 def attach_response(response):

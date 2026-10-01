@@ -1,3 +1,10 @@
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+import warnings
+
+import allure
+from common.failure_context import start_context, finish_context, build_failure_context
 from common.jsonpath_utils import extract_one
 import os
 from contextlib import suppress
@@ -12,6 +19,7 @@ from common.log_config import setup_logging
 
 
 def pytest_addoption(parser):
+    parser.addoption("--failure-dir", default="reports/failures", help="失败上下文 JSON 的输出目录")
     parser.addoption(
         "--base-url",
         action="store",
@@ -99,3 +107,42 @@ def second_authenticated_client(base_url):
 
 def pytest_configure(config):
     setup_logging()
+    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid4().hex[:8]
+    config._failure_output_dir = Path(config.getoption("--failure-dir")) / run_id
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_protocol(item, nextitem):
+    # 覆盖本次测试的 setup、call 和 teardown，结束后释放收集状态。
+    token = start_context()
+    try:
+        yield
+    finally:
+        finish_context(token)
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    # 暂停当前 Hook，让 pytest 和其他 Hook 生成本阶段执行报告。
+    outcome = yield
+    report = outcome.get_result()
+
+    # setup、call、teardown 各生成一次报告，只输出失败的阶段。
+    if report.failed:
+        print(
+            f"\n[失败报告 Hook]"
+            f"\n失败用例：{report.nodeid}"
+            f"\n失败阶段：{report.when}"
+        )
+
+        context = build_failure_context(report, call)
+        try:
+            output_dir = item.config._failure_output_dir
+            output_dir.mkdir(parents=True, exist_ok=True)
+            output_file = output_dir / f"{uuid4().hex}-{report.when}.json"
+            content = json.dumps(context, ensure_ascii=False, indent=2, default=str)
+            output_file.write_text(content, encoding="utf-8")
+            allure.attach(content, name=f"失败上下文 ({report.when})", attachment_type=allure.attachment_type.JSON)
+            print(f"失败上下文：{output_file.resolve()}")
+        except OSError as error:
+            warnings.warn(f"失败上下文写入失败：{type(error).__name__}", RuntimeWarning)
